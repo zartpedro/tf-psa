@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+
+  reimbursement-service:
+    build:
+      context: ./reimbursement-service
+    container_name: reimbursement-service
+    ports:
+      - "5001:5001"
+    depends_on:
+      - db
+
+  report-service:
+    build:
+      context: ./report-service
+    container_name: report-service
+    ports:
+      - "5002:5002"
+    depends_on:
+      - db
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:80"
+    depends_on:
+      - auth-service
+      - reimbursement-service
+      - report-service
+
+  db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: reimbursement_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  frontend:
+    build:
+      context: ./FRONTEND
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - dist:/app/dist
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - '80:80'
+    volumes:
+      - dist:/usr/share/nginx/html
+    depends_on:
+      - frontend    
+
+volumes:
+  dist:
+  db_data:
